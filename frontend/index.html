@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Painel de monitoramento de projetos de lei do Senado Federal.">
+  <title>PL Radar — Monitoramento legislativo</title>
+  <link rel="icon" href="./favicon.ico" type="image/x-icon">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="script.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="PL Radar, início">
+        <span class="brand-mark">PL<span>!</span></span>
+        <span class="brand-name">RADAR<span class="brand-dot">.</span></span>
+      </a>
+      <div class="topbar-right">
+        <span class="live-label"><i class="live-dot"></i> DADOS DO SENADO</span>
+        <button class="icon-button" id="theme-toggle" type="button" aria-label="Alternar tema" title="Alternar tema">
+          <svg id="theme-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.64 5.64l1.42 1.42m9.88 9.88 1.42 1.42m0-12.72-1.42 1.42m-9.88 9.88-1.42 1.42M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="eyebrow-line"></span> TRANSPARÊNCIA LEGISLATIVA / BRASIL</p>
+          <h1>O que está<br><span>em pauta?</span></h1>
+          <p class="hero-description">Acompanhe projetos de lei, entenda sua tramitação e encontre as consultas públicas em um só lugar.</p>
+        </div>
+        <div class="hero-stamp" aria-label="Monitoramento legislativo">
+          <span class="stamp-top">SENADO FEDERAL</span>
+          <strong>PL<br>RADAR</strong>
+          <span class="stamp-bottom">DADOS<br>SINCRONIZADOS</span>
+        </div>
+      </section>
+
+      <section class="stats-grid" aria-label="Resumo das propostas">
+        <article class="stat-card stat-yellow">
+          <span class="stat-label">PROPOSTAS EXIBIDAS</span>
+          <strong id="stat-total">—</strong>
+          <span class="stat-foot">após aplicar os filtros</span>
+        </article>
+        <article class="stat-card stat-pink">
+          <span class="stat-label">EM TRAMITAÇÃO</span>
+          <strong id="stat-active">—</strong>
+          <span class="stat-foot">marcadas como tramitando</span>
+        </article>
+        <article class="stat-card stat-blue">
+          <span class="stat-label">MAIS RECENTE</span>
+          <strong id="stat-latest">—</strong>
+          <span class="stat-foot" id="stat-latest-label">data de apresentação</span>
+        </article>
+      </section>
+
+      <section id="analytics-section" class="analytics-section" aria-label="Estatísticas legislativas">
+        <div class="section-heading analytics-heading">
+          <div>
+            <p class="eyebrow"><span class="eyebrow-line"></span> DADOS E INDICADORES</p>
+            <h2>Panorama legislativo<span class="heading-period">.</span></h2>
+            <p class="analytics-intro">Estatísticas calculadas a partir dos registros sincronizados pelo PL Radar.</p>
+          </div>
+          <span id="analytics-updated" class="analytics-updated">AGUARDANDO SINCRONIZAÇÃO</span>
+        </div>
+        <div class="analytics-grid">
+          <article class="chart-card chart-wide"><div class="chart-card-heading"><h3>Proposições apresentadas</h3><span>EVOLUÇÃO MENSAL</span></div><div id="chart-monthly" class="chart-content"><p class="chart-empty">Aguardando dados...</p></div></article>
+          <article class="chart-card"><div class="chart-card-heading"><h3>Situação atual</h3><span>TOP 8</span></div><div id="chart-situations" class="chart-content"><p class="chart-empty">Aguardando dados...</p></div></article>
+          <article class="chart-card"><div class="chart-card-heading"><h3>Tipos de proposição</h3><span>TOP 8</span></div><div id="chart-types" class="chart-content"><p class="chart-empty">Aguardando dados...</p></div></article>
+          <article class="chart-card"><div class="chart-card-heading"><h3>Autoria registrada</h3><span>TOP 10 · NÃO É MÉTRICA DE QUALIDADE</span></div><div id="chart-authors" class="chart-content"><p class="chart-empty">Aguardando dados...</p></div></article>
+          <article class="chart-card"><div class="chart-card-heading"><h3>Proposições mais votadas</h3><span>VOTAÇÕES NOMINAIS</span></div><div id="chart-voting" class="chart-content"><p class="chart-empty">Aguardando dados...</p></div></article>
+        </div>
+        <p id="analytics-note" class="analytics-note">Os dados estatísticos serão carregados do banco local.</p>
+      </section>
+
+      <section class="toolbar-section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow"><span class="eyebrow-line"></span> BASE LEGISLATIVA</p>
+            <h2>Propostas recentes<span class="heading-period">.</span></h2>
+          </div>
+          <button class="refresh-button" id="refresh-button" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M5.6 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.4-3"/></svg>
+            <span>ATUALIZAR</span>
+          </button>
+        </div>
+
+        <div class="filters">
+          <label class="search-box">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>
+            <input id="search-input" type="search" placeholder="Buscar por PL, ementa ou autoria..." autocomplete="off">
+          </label>
+          <select id="status-filter" aria-label="Filtrar por situação">
+            <option value="all">Todas as situações</option>
+            <option value="active">Em tramitação</option>
+            <option value="inactive">Fora de tramitação</option>
+          </select>
+          <select id="type-filter" aria-label="Filtrar por tipo">
+            <option value="pl">Projetos de lei (PL)</option>
+            <option value="all">Todos os tipos</option>
+            <option value="pl-only">PL — tipo exato</option>
+          </select>
+        </div>
+        <div class="results-meta">
+          <span id="results-count">Carregando propostas...</span>
+          <span class="sort-note">ORDENAÇÃO: MAIS RECENTES PRIMEIRO ↓</span>
+        </div>
+      </section>
+
+      <section id="proposal-list" class="proposal-list" aria-live="polite">
+        <div class="loading-state">
+          <span class="loader"></span>
+          <strong>Conectando ao banco de dados...</strong>
+          <span>Carregando propostas sincronizadas pelo PL Radar.</span>
+        </div>
+      </section>
+
+      <div class="pagination-row">
+        <button id="load-more" class="load-more-button" type="button" hidden>CARREGAR MAIS PROPOSTAS <span>↓</span></button>
+      </div>
+
+      <section class="source-note">
+        <div class="source-icon">i</div>
+        <p><strong>Sobre os dados.</strong> As informações são obtidas da API de Dados Abertos do Senado Federal e armazenadas localmente pelo backend. A sincronização automática ocorre a cada seis horas por padrão; use Atualizar para solicitar uma coleta imediata. O link de consulta pública é exibido quando a API fornece um identificador compatível.</p>
+      </section>
+
+      <section id="detail-view" class="detail-view" hidden aria-live="polite"></section>
+    </main>
+
+    <footer class="footer">
+      <span>PL RADAR <b>©</b> <span id="current-year"></span></span>
+      <span>FEITO PARA ACOMPANHAR A DEMOCRACIA.</span>
+      <a href="https://legis.senado.leg.br/dadosabertos/v3/api-docs" target="_blank" rel="noopener noreferrer">DOCUMENTAÇÃO DA API ↗</a>
+    </footer>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
