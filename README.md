@@ -1,172 +1,76 @@
+# PL Radar — Painel de monitoramento legislativo
 
-<h1 align="center">PL Radar — Painel e Backend de Dados Legislativos</h1> 
-
-<p align="center">
-  <img alt="Principal linguagem do projeto" src="https://img.shields.io/github/languages/top/navegantes/pl_radar?color=3B82F6">
-
-  <img alt="Quantidade de linguagens utilizadas" src="https://img.shields.io/github/languages/count/navegantes/pl_radar?color=3B82F6">
-
-  <img alt="Tamanho do repositório" src="https://img.shields.io/github/repo-size/navegantes/pl_radar?color=3B82F6">
-
-  <img alt="Licença" src="https://img.shields.io/github/license/navegantes/pl_radar?color=3B82F6">
-
-  <img alt="Github forks" src="https://img.shields.io/github/forks/navegantes/pl_radar?color=3B82F6" />
-
-  <img alt="Github stars" src="https://img.shields.io/github/stars/navegantes/pl_radar?color=3B82F6" />
-</p>
-
-<hr>
-
-<br>
-
-<div align="center" id="top"> 
-  <img src="./public/img/home.png" alt="pl_radar home" />
-</div>
-
-<hr>
-
-
-## Sobre
-
-O PL Radar é uma aplicação web destinada ao acompanhamento, consulta e análise de propostas legislativas do Senado Federal brasileiro.
-
-O objetivo é centralizar informações sobre projetos de lei, permitir a pesquisa e o acompanhamento de sua tramitação e apresentar indicadores que ajudem a compreender a atividade legislativa.
-
-A aplicação utiliza dados disponibilizados pela API de Dados Abertos do Senado Federal.
-
-Além da consulta individual de proposições, o projeto prevê uma camada de análise estatística, denominada Panorama Legislativo, com gráficos e indicadores sobre a produção legislativa.
-
-O PL Radar mantém a interface original em HTML, CSS e JavaScript puro e acrescenta um backend FastAPI, uma camada de aplicação e persistência SQLAlchemy. O banco inicial é SQLite. A camada de domínio/aplicação depende de portas (interfaces), não do banco concreto.
+Painel estático em HTML, CSS e JavaScript para acompanhar processos legislativos disponibilizados pela API de Dados Abertos do Senado Federal.
 
 ## Estrutura
 
 ```text
-pl_radar/
-├── frontend/
-│   ├── index.html
-│   ├── styles.css
-│   ├── script.js              # Orquestração da interface
-│   ├── package.json
-│   └── js/
-│       └── api-client.js      # Adapter HTTP
-├── backend/
-│   ├── app/
-│   │   ├── api/                 # Rotas HTTP / contratos de entrada e saída
-│   │   ├── application/         # Casos de uso, normalização e agregações
-│   │   ├── domain/              # Entidades e portas (interfaces)
-│   │   └── infrastructure/     # SQLAlchemy, SQLite/PostgreSQL e cliente Senado
-│   ├── migrations/              # Migrações Alembic
-│   └── tests/
-│   └── data/                    # Banco SQLite local (não versionado)
-├── requirements.txt
-├── Dockerfile
-└── docker-compose.yml
+painel_pl_senado/
+├── index.html
+├── styles.css
+├── script.js
+└── README.md
 ```
 
-## Princípios aplicados
+## Como executar
 
-- **Clean Architecture:** domínio e casos de uso não importam FastAPI, HTTPX ou SQLAlchemy.
-- **Dependency Inversion / DI:** `ProposalRepository` e `SenadoGateway` são portas; o módulo de dependências injeta os adaptadores concretos.
-- **Repository Pattern:** consultas e persistência ficam em `SqlAlchemyProposalRepository`.
-- **Adapter Pattern:** `SenadoApiClient` encapsula a API do Senado no backend; `ApiClient` encapsula o transporte HTTP no frontend.
-- **Use Case / Service Layer:** sincronização e agregação estatística são casos de uso independentes das rotas.
-- **Single Responsibility:** API, aplicação, domínio e infraestrutura têm responsabilidades distintas.
-- **Persistência substituível:** SQLAlchemy abstrai o dialeto. Para PostgreSQL, altere `DATABASE_URL`; não altere casos de uso nem rotas.
+A forma recomendada é servir a pasta por HTTP local (não abrir o HTML diretamente como `file://`):
 
-## Executar localmente
-
-Requer Python 3.11+.
+### Python
 
 ```bash
-python -m venv .venv
-# Windows PowerShell: .venv\Scripts\Activate.ps1
-# Linux/macOS: source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env  # opcional; ajuste as variáveis conforme necessário
-cd backend
-uvicorn app.main:app --reload
+cd painel_pl_senado
+python -m http.server 8000
 ```
 
-Abra `http://localhost:8000`. A API interativa fica em `http://localhost:8000/docs` e a verificação de saúde em `/api/v1/health`.
+Acesse `http://localhost:8000`.
 
-O backend tenta uma sincronização inicial quando o banco está vazio. Por padrão, também executa sincronização a cada seis horas. O botão **Atualizar** solicita uma sincronização imediata. A listagem e os gráficos consultam o banco local, não fazem uma chamada externa por carregamento da página.
+Também é possível usar a extensão Live Server do VS Code.
 
-### Variáveis de ambiente
+## Fonte de dados
 
-| Variável | Padrão | Descrição |
-|---|---|---|
-| `DATABASE_URL` | `sqlite+pysqlite:///./data/pl_radar.db` | URL SQLAlchemy do banco |
-| `SENADO_BASE_URL` | `https://legis.senado.leg.br/dadosabertos` | Raiz dos Dados Abertos |
-| `SYNC_ON_STARTUP` | `true` | Sincroniza se o banco estiver vazio |
-| `AUTO_CREATE_SCHEMA` | `true` | Cria tabelas automaticamente no startup (desative ao usar Alembic em produção) |
-| `SYNC_INTERVAL_SECONDS` | `21600` | Intervalo de sincronização automática; `0` desativa |
-| `REQUEST_TIMEOUT_SECONDS` | `45` | Timeout do cliente HTTP |
-| `CORS_ORIGINS` | `*` | Origens permitidas quando frontend e backend forem separados |
+O painel consulta:
 
-## PostgreSQL no futuro
+`https://legis.senado.leg.br/dadosabertos/processo?v=1`
 
-Instale o driver já listado em `requirements.txt` e configure, por exemplo:
+A resposta esperada é uma lista JSON com campos como `identificacao`, `ementa`, `dataApresentacao`, `autoria`, `situacaoAtual`, `tramitando` e `id`.
 
-```env
-DATABASE_URL=postgresql+psycopg://usuario:senha@localhost:5432/pl_radar
-```
+A aplicação ordena localmente por `dataApresentacao` (mais recente primeiro), filtra os tipos de proposição e pagina a exibição em lotes de 20 itens.
 
-A aplicação cria o engine pelo `DATABASE_URL`. Os repositórios usam SQLAlchemy e tipos portáveis. A migração requer criar o banco PostgreSQL, configurar a variável e executar as migrações. Não é necessário alterar os casos de uso ou o JavaScript.
+## Consulta pública
 
-Para implantação e evolução do schema, use Alembic:
+Quando o registro contém `codigoMateria`, o painel monta:
 
-```bash
-cd backend
-alembic -c alembic.ini upgrade head
-```
+`https://www12.senado.leg.br/ecidadania/visualizacaomateria?id={codigoMateria}`
 
-A criação automática de tabelas no startup é conveniente para desenvolvimento inicial; em produção, execute `alembic upgrade head` e configure `AUTO_CREATE_SCHEMA=false`.
+O campo `codigoMateria` é usado no link do e-Cidadania. O campo `id` é o identificador interno do processo e é usado para consultar os detalhes.
 
-## Endpoints do backend
+## Tela de detalhes
 
-| Método | Rota | Responsabilidade |
-|---|---|---|
-| `GET` | `/api/v1/health` | Health check |
-| `GET` | `/api/v1/proposals` | Lista local com filtros opcionais |
-| `GET` | `/api/v1/statistics` | Agregações estatísticas locais |
-| `POST` | `/api/v1/sync` | Sincronização imediata com o Senado |
-| `GET` | `/api/v1/processes/{id}` | Proxy de detalhes do processo |
-| `GET` | `/api/v1/senators/{code}/profile` | Proxy do XML de perfil parlamentar |
+Cada card possui o botão **Ver detalhes**, que consulta `https://legis.senado.leg.br/dadosabertos/processo/{id}?v=1`. A tela apresenta resumo, ementa, autoria, classificação temática, movimentações, despachos, processos apensados/relacionados e link para o documento oficial, conforme os dados disponíveis na resposta. O botão de retorno mantém o painel e seus filtros em memória.
 
-## Persistência e modelo
+A tela de detalhes também respeita o tema claro/escuro. A consulta usa o `id` interno do processo; o link do e-Cidadania continua usando `codigoMateria`.
 
-Tabelas criadas:
+## Observações técnicas
 
-- `proposals`: dados normalizados e JSON original da API.
-- `proposal_snapshots`: fotografia do estoque total/em tramitação em cada sincronização.
-- `sync_logs`: histórico de execução das sincronizações.
-- `parliamentarians`, `authorships`, `party_affiliations`: estrutura preparada para cadastro, autoria e histórico partidário.
-- `vote_events`, `votes`: estrutura preparada para eventos e votos individualizados.
-- `proceeding_events`, `rapporteurs`: estrutura preparada para tramitação e relatorias.
+- Atualização automática a cada 5 minutos e botão para atualizar manualmente.
+- O filtro inicial mostra tipos de proposição relacionados a projetos de lei (`PL`, `PLS`, `PLC`, `PLP`, `PLV` e registros cujo tipo textual indica projeto de lei).
+- O filtro "PL — tipo exato" limita a identificação ao prefixo `PL`.
+- Tema claro/escuro com preferência guardada em `localStorage`.
+- O painel depende de o navegador conseguir acessar a API diretamente. Se a API não liberar CORS para a origem usada, será necessário um pequeno proxy/backend (por exemplo, FastAPI, Flask ou Cloudflare Worker). O próprio painel mostra um aviso nesse caso.
+- A consulta da API sem parâmetros pode retornar um conjunto grande. Para produção, recomenda-se confirmar os parâmetros de filtro e limites/paginação suportados pela versão atual do serviço e, se necessário, implementar cache no backend.
+- O painel é informativo e não envia votos, comentários ou manifestações ao Senado.
 
-As tabelas complementares estão preparadas, mas não são preenchidas automaticamente nesta primeira entrega. A coleta de votações exige validar os formatos reais das respostas, identificadores de votação e vínculo com processos antes de habilitar gráficos de ranking. O painel exibe essa indisponibilidade explicitamente, sem inventar valores.
+## Personalização
 
-## Estatísticas atualmente alimentadas
+- URL da API e URL de consulta pública: constantes no início de `script.js`.
+- Intervalo de atualização: `REFRESH_INTERVAL`.
+- Quantidade por lote: `PAGE_SIZE`.
+- Cores, tipografia e espaçamentos: variáveis CSS no início de `styles.css`.
 
-- Evolução mensal de proposições apresentadas.
-- Distribuição por situação atual.
-- Distribuição por tipo de documento.
-- Autoria estruturada quando a resposta fornece uma lista de autores.
-- Snapshot do total e do total em tramitação por execução.
 
-**Limites conhecidos:** o endpoint de listagem pode fornecer autoria como texto agregado; strings não são divididas artificialmente em nomes para não contar coautores como autores individuais. Assuntos, partidos e UFs dependem de dados estruturados ou enriquecimento por endpoints próprios. O gráfico de proposições mais votadas permanece desabilitado até a coleta nominal ser implementada e validada.
+### Perfis dos autores na tela de detalhes
 
-Os snapshots começam a ser registrados a partir da primeira sincronização desta versão; eles não reconstroem retroativamente o estoque histórico.
+A seção **Autoria** apresenta um dropdown para cada autor. Ao expandi-lo, o painel consulta sob demanda o endpoint `https://legis.senado.leg.br/dadosabertos/senador/{codigoParlamentar}?v=6`, interpreta o XML no navegador e exibe nome parlamentar e completo, partido/UF, sexo, nascimento, naturalidade, telefone, e-mail, endereço, foto oficial e link para o perfil no Senado, conforme os campos disponíveis. As respostas são mantidas em cache durante a sessão para evitar consultas repetidas.
 
-## Testes
-
-```bash
-cd backend
-PYTHONPATH=. pytest -q
-```
-
-## Interface e funcionalidades preservadas
-
-A identidade neobrutalista, tema claro/escuro, filtros, pesquisa, paginação, tela de detalhes, autoria com dropdown e links oficiais foram mantidos. O cliente HTTP do frontend foi isolado em `frontend/js/api-client.js`, separado da lógica de apresentação. As chamadas diretas do navegador à API do Senado foram substituídas pelo backend, evitando dependência de CORS no navegador.
-
-O painel é informativo: não envia votos, comentários ou manifestações ao Senado.
+Autores sem `codigoParlamentar` continuam visíveis, mas não recebem consulta de perfil. A API precisa permitir CORS para que a chamada funcione diretamente no navegador; caso contrário, configure um proxy no backend.

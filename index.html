@@ -5,12 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Painel de monitoramento de projetos de lei do Senado Federal.">
   <title>PL Radar — Monitoramento legislativo</title>
-  <link rel="icon" href="./favicon.ico" type="image/x-icon">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <script type="module" src="script.js"></script>
+  <script src="script.js" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -37,7 +36,7 @@
         <div class="hero-stamp" aria-label="Monitoramento legislativo">
           <span class="stamp-top">SENADO FEDERAL</span>
           <strong>PL<br>RADAR</strong>
-          <span class="stamp-bottom">DADOS<br>SINCRONIZADOS</span>
+          <span class="stamp-bottom">MONITORAMENTO<br>EM TEMPO REAL*</span>
         </div>
       </section>
 
@@ -57,25 +56,6 @@
           <strong id="stat-latest">—</strong>
           <span class="stat-foot" id="stat-latest-label">data de apresentação</span>
         </article>
-      </section>
-
-      <section id="analytics-section" class="analytics-section" aria-label="Estatísticas legislativas">
-        <div class="section-heading analytics-heading">
-          <div>
-            <p class="eyebrow"><span class="eyebrow-line"></span> DADOS E INDICADORES</p>
-            <h2>Panorama legislativo<span class="heading-period">.</span></h2>
-            <p class="analytics-intro">Estatísticas calculadas a partir dos registros sincronizados pelo PL Radar.</p>
-          </div>
-          <span id="analytics-updated" class="analytics-updated">AGUARDANDO SINCRONIZAÇÃO</span>
-        </div>
-        <div class="analytics-grid">
-          <article class="chart-card chart-wide"><div class="chart-card-heading"><h3>Proposições apresentadas</h3><span>EVOLUÇÃO MENSAL</span></div><div id="chart-monthly" class="chart-content"><p class="chart-empty">Aguardando dados...</p></div></article>
-          <article class="chart-card"><div class="chart-card-heading"><h3>Situação atual</h3><span>TOP 8</span></div><div id="chart-situations" class="chart-content"><p class="chart-empty">Aguardando dados...</p></div></article>
-          <article class="chart-card"><div class="chart-card-heading"><h3>Tipos de proposição</h3><span>TOP 8</span></div><div id="chart-types" class="chart-content"><p class="chart-empty">Aguardando dados...</p></div></article>
-          <article class="chart-card"><div class="chart-card-heading"><h3>Autoria registrada</h3><span>TOP 10 · NÃO É MÉTRICA DE QUALIDADE</span></div><div id="chart-authors" class="chart-content"><p class="chart-empty">Aguardando dados...</p></div></article>
-          <article class="chart-card"><div class="chart-card-heading"><h3>Proposições mais votadas</h3><span>VOTAÇÕES NOMINAIS</span></div><div id="chart-voting" class="chart-content"><p class="chart-empty">Aguardando dados...</p></div></article>
-        </div>
-        <p id="analytics-note" class="analytics-note">Os dados estatísticos serão carregados do banco local.</p>
       </section>
 
       <section class="toolbar-section">
@@ -115,8 +95,8 @@
       <section id="proposal-list" class="proposal-list" aria-live="polite">
         <div class="loading-state">
           <span class="loader"></span>
-          <strong>Conectando ao banco de dados...</strong>
-          <span>Carregando propostas sincronizadas pelo PL Radar.</span>
+          <strong>Conectando aos dados abertos...</strong>
+          <span>Buscando propostas legislativas no Senado Federal.</span>
         </div>
       </section>
 
@@ -126,7 +106,7 @@
 
       <section class="source-note">
         <div class="source-icon">i</div>
-        <p><strong>Sobre os dados.</strong> As informações são obtidas da API de Dados Abertos do Senado Federal e armazenadas localmente pelo backend. A sincronização automática ocorre a cada seis horas por padrão; use Atualizar para solicitar uma coleta imediata. O link de consulta pública é exibido quando a API fornece um identificador compatível.</p>
+        <p><strong>Sobre os dados.</strong> As informações são obtidas da API de Dados Abertos do Senado Federal. A data de apresentação é usada para ordenar as propostas; a atualização depende da disponibilidade e da atualização da base oficial. O link de consulta pública é exibido quando a API fornece um identificador compatível.</p>
       </section>
 
       <section id="detail-view" class="detail-view" hidden aria-live="polite"></section>
@@ -135,7 +115,7 @@
     <footer class="footer">
       <span>PL RADAR <b>©</b> <span id="current-year"></span></span>
       <span>FEITO PARA ACOMPANHAR A DEMOCRACIA.</span>
-      <a href="https://legis.senado.leg.br/dadosabertos/v3/api-docs" target="_blank" rel="noopener noreferrer">DOCUMENTAÇÃO DA API ↗</a>
+      <a href="https://legis.senado.leg.br/dadosabertos/docs/index.html" target="_blank" rel="noopener noreferrer">DOCUMENTAÇÃO DA API ↗</a>
     </footer>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>

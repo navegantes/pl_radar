@@ -1,7 +1,6 @@
-import { ApiClient } from "./js/api-client.js";
-
-const apiClient = new ApiClient();
+const API_URL = "https://legis.senado.leg.br/dadosabertos/processo?v=1";
 const CONSULTA_PUBLICA_URL = "https://www12.senado.leg.br/ecidadania/visualizacaomateria?id=";
+const DETAIL_API_URL = "https://legis.senado.leg.br/dadosabertos/processo/";
 const PAGE_SIZE = 20;
 const REFRESH_INTERVAL = 5 * 60 * 1000;
 
@@ -32,7 +31,7 @@ const els = {
   themeIcon: document.querySelector("#theme-icon"),
   toast: document.querySelector("#toast"),
   detailView: document.querySelector("#detail-view"),
-  dashboardSections: [...document.querySelectorAll("main > .hero, main > .stats-grid, main > #analytics-section, main > .toolbar-section, main > #proposal-list, main > .pagination-row, main > .source-note")]
+  dashboardSections: [...document.querySelectorAll("main > .hero, main > .stats-grid, main > .toolbar-section, main > #proposal-list, main > .pagination-row, main > .source-note")]
 };
 
 function escapeHTML(value = "") {
@@ -93,73 +92,48 @@ function sortNewest(items) {
   });
 }
 
-async function fetchProposals(forceSync = false) {
+async function fetchProposals() {
   if (state.loading) return;
   state.loading = true;
   els.refresh.classList.add("is-loading");
   els.refresh.disabled = true;
-  els.refresh.querySelector("span").textContent = forceSync ? "SINCRONIZANDO" : "CARREGANDO";
+  els.refresh.querySelector("span").textContent = "BUSCANDO";
+
   try {
-    if (forceSync) {
-      const syncResponse = await fetch("/sync", {method:"POST", headers:{"Accept":"application/json"}}); //apiClient.synchronize();
-      if (!syncResponse.ok) throw new Error(`A sincronização respondeu com HTTP ${syncResponse.status}.`);
+    const response = await fetch(API_URL, {
+      headers: { "Accept": "application/json" },
+      cache: "no-store"
+    });
+    if (!response.ok) throw new Error(`A API respondeu com HTTP ${response.status}.`);
+    const payload = await response.json();
+    const records = extractRecords(payload);
+
+    if (!records.length) {
+      throw new Error("A API respondeu, mas não foi possível localizar a lista de processos no JSON.");
     }
-    const payload = await apiClient.listProposals();
-    const records = Array.isArray(payload) ? payload : (payload.items || []);
+
     state.all = sortNewest(records);
     state.lastUpdated = new Date();
     applyFilters();
-    await fetchAnalytics();
-    if (forceSync) showToast(`${state.all.length.toLocaleString("pt-BR")} registros sincronizados com o Senado.`);
+    showToast(`${state.all.length.toLocaleString("pt-BR")} registros recebidos da API.`);
   } catch (error) {
-    console.error("Falha ao carregar dados do PL Radar:", error);
+    console.error("Falha ao consultar a API do Senado:", error);
     if (!state.all.length) {
-      els.list.innerHTML = `<div class="error-state"><strong>Não foi possível carregar os dados.</strong><span>${escapeHTML(error.message)}<br>Verifique se o backend está em execução.</span><span>O painel agora consulta o banco local; use Atualizar para solicitar uma sincronização com o Senado.</span></div>`;
+      els.list.innerHTML = `
+        <div class="error-state">
+          <strong>Não foi possível carregar os dados.</strong>
+          <span>${escapeHTML(error.message)}<br>Verifique sua conexão ou tente novamente.</span>
+          <span>Se o navegador bloquear a requisição por CORS, execute o painel por um servidor local ou adicione um proxy de backend.</span>
+        </div>`;
       els.resultsCount.textContent = "Falha na consulta";
-    } else showToast("Não foi possível atualizar. Exibindo os últimos dados carregados.");
+    } else {
+      showToast("Não foi possível atualizar. Exibindo os últimos dados carregados.");
+    }
   } finally {
     state.loading = false;
     els.refresh.classList.remove("is-loading");
     els.refresh.disabled = false;
     els.refresh.querySelector("span").textContent = "ATUALIZAR";
-  }
-}
-
-function renderBarChart(targetId, rows, emptyMessage = "Sem dados suficientes para este gráfico.") {
-  const target = document.getElementById(targetId);
-  if (!target) return;
-  if (!rows?.length) { target.innerHTML = `<p class="chart-empty">${escapeHTML(emptyMessage)}</p>`; return; }
-  const max = Math.max(...rows.map(row => Number(row.value) || 0), 1);
-  target.innerHTML = `<div class="chart-bars">${rows.map((row, index) => {
-    const value = Number(row.value) || 0;
-    const width = Math.max(2, value / max * 100);
-    return `<div class="chart-bar-row"><div class="chart-bar-label" title="${escapeHTML(row.label)}">${escapeHTML(row.label)}</div><div class="chart-bar-track"><span class="chart-bar-fill chart-color-${index % 4}" style="width:${width}%"></span></div><strong>${value.toLocaleString("pt-BR")}</strong></div>`;
-  }).join("")}</div>`;
-}
-
-function renderMonthlyChart(rows) {
-  const target = document.querySelector("#chart-monthly");
-  if (!target) return;
-  if (!rows?.length) { target.innerHTML = `<p class="chart-empty">Sem datas de apresentação disponíveis.</p>`; return; }
-  const max = Math.max(...rows.map(row => row.value), 1);
-  target.innerHTML = `<div class="monthly-chart">${rows.map(row => `<div class="monthly-column"><strong>${Number(row.value).toLocaleString("pt-BR")}</strong><span class="monthly-bar" style="height:${Math.max(4, row.value / max * 100)}%"></span><small>${escapeHTML(row.label.slice(5))}/${escapeHTML(row.label.slice(0,4))}</small></div>`).join("")}</div>`;
-}
-
-async function fetchAnalytics() {
-  try {
-    const data = await apiClient.getStatistics();
-    renderMonthlyChart(data.monthly);
-    renderBarChart("chart-situations", data.situations);
-    renderBarChart("chart-types", data.types);
-    renderBarChart("chart-authors", data.authors, "A API não forneceu dados estruturados de autoria para esta agregação.");
-    renderBarChart("chart-voting", [], data.voting?.message || "Dados de votação não disponíveis.");
-    const updated = document.querySelector("#analytics-updated");
-    if (updated) updated.textContent = data.lastSyncAt ? `ÚLTIMA SINCRONIZAÇÃO: ${new Date(data.lastSyncAt).toLocaleString("pt-BR")}` : "SEM SINCRONIZAÇÃO REGISTRADA";
-    const note = document.querySelector("#analytics-note");
-    if (note) note.textContent = data.dataNote || "";
-  } catch (error) {
-    console.error("Falha ao carregar estatísticas:", error);
-    renderBarChart("chart-voting", [], "Não foi possível consultar as estatísticas.");
   }
 }
 
@@ -281,8 +255,10 @@ function senatorField(label, value) {
 async function fetchSenatorProfile(code) {
   if (state.senatorCache.has(code)) return state.senatorCache.get(code);
   const request = (async () => {
-    const profilePayload = await apiClient.getSenatorProfile(code);
-    const xmlTextBody = profilePayload.xml;
+    const url = `https://legis.senado.leg.br/dadosabertos/senador/${encodeURIComponent(code)}?v=6`;
+    const response = await fetch(url, {headers:{Accept:"application/xml, text/xml"}, cache:"no-store"});
+    if (!response.ok) throw new Error(`A API respondeu com HTTP ${response.status}.`);
+    const xmlTextBody = await response.text();
     const xml = new DOMParser().parseFromString(xmlTextBody, "application/xml");
     if (xml.querySelector("parsererror") || !xml.querySelector("Parlamentar IdentificacaoParlamentar")) {
       throw new Error("A resposta XML do perfil parlamentar é inválida ou não contém os dados esperados.");
@@ -411,12 +387,14 @@ async function openDetails(id, updateHistory = true) {
   if (updateHistory) history.pushState({detailId:String(id)}, "", `#detalhes/${encodeURIComponent(id)}`);
   window.scrollTo({top:0, behavior:"smooth"});
   try {
-    const data = unwrapDetail(await apiClient.getProcess(id));
+    const response = await fetch(`${DETAIL_API_URL}${encodeURIComponent(id)}?v=1`, {headers:{Accept:"application/json"}, cache:"no-store"});
+    if (!response.ok) throw new Error(`A API respondeu com HTTP ${response.status}.`);
+    const data = unwrapDetail(await response.json());
     if (!data) throw new Error("A API retornou uma resposta vazia ou inválida.");
     renderDetail(data);
   } catch (error) {
     console.error("Falha ao consultar detalhes do processo:", error);
-    els.detailView.innerHTML = `<button class="detail-back-button" id="detail-back" type="button">← VOLTAR ÀS PROPOSTAS</button><div class="error-state"><strong>Não foi possível carregar os detalhes.</strong><span>${escapeHTML(error.message)}</span><span>Verifique a disponibilidade do backend e da API do Senado.</span><button class="detail-back-button" id="detail-retry" type="button">TENTAR NOVAMENTE</button></div>`;
+    els.detailView.innerHTML = `<button class="detail-back-button" id="detail-back" type="button">← VOLTAR ÀS PROPOSTAS</button><div class="error-state"><strong>Não foi possível carregar os detalhes.</strong><span>${escapeHTML(error.message)}</span><span>Se houver bloqueio de CORS, será necessário consultar a API por meio de um proxy no backend.</span><button class="detail-back-button" id="detail-retry" type="button">TENTAR NOVAMENTE</button></div>`;
   } finally {
     state.detailLoading = false;
   }
@@ -443,7 +421,7 @@ function setTheme(theme) {
 els.search.addEventListener("input", applyFilters);
 els.status.addEventListener("change", applyFilters);
 els.type.addEventListener("change", applyFilters);
-els.refresh.addEventListener("click", () => fetchProposals(true));
+els.refresh.addEventListener("click", fetchProposals);
 els.loadMore.addEventListener("click", () => {
   state.visibleCount += PAGE_SIZE;
   render();
@@ -479,4 +457,4 @@ setTheme(preferredTheme);
 document.querySelector("#current-year").textContent = new Date().getFullYear();
 
 fetchProposals();
-window.setInterval(() => { fetchProposals(false); }, REFRESH_INTERVAL);
+window.setInterval(fetchProposals, REFRESH_INTERVAL);
